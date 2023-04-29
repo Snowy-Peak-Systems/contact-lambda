@@ -1,0 +1,129 @@
+name: Lint, Test, Archive, and Deploy
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
+
+concurrency:
+  group: ${{ format('{0}-{1}', github.job, github.ref) }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint the source
+    runs-on: ubuntu-latest
+    container:
+      image: python:3
+      volumes:
+        - ${{ github.workspace }}:/usr/src/app
+      options: -w /usr/src/app
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Run linters
+        run: |
+          pip install black pylint -rrequirements.txt
+          black --check .
+          pylint /app
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [ "3.9", "3.10" ]
+    container:
+      image: python:${{ matrix.version }}
+      volumes:
+        - ${{ github.workspace }}:/usr/src/app
+      options: -w /usr/src/app
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Run tests
+        run: |
+          pip install tox
+          tox -e py3
+
+  archive:
+    name: Archive
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - test
+    container:
+      image: python:3
+      volumes:
+        - ${{ github.workspace }}:/usr/src/app
+      options: -w /usr/src/app
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Run linters
+        run: |
+          mkdir dist/
+          cp -r app/ dist/
+          pip install -t dist/ -rrequirements.txt 
+
+      - name: Upload Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: Archive
+          path: dist/
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs:
+      - archive
+    if: github.ref_name == 'main'
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Download Archive
+        uses: actions/download-artifact@v3
+        with:
+          name: Archive
+          path: dist/
+
+      - name: Upload to S3
+        run: |
+          zip -r sps-contact-form.zip dist/
+          aws s3 cp sps-contact-form.zip s3://sps-lambda-code-9cc619ae-565f-5f25-b150-57abb4c4cbac/
+
+      - name: Checkout Pulumi Code
+        uses: actions/checkout@v3
+        with:
+          repository: Snowy-Peak-Systems/contact-lambda
+          fetch-depth: 0
+          path: pulumi
+
+      - name: Install Pulumi
+        uses: pulumi/actions@v4
+
+      - name: Deploy Lambda
+        env:
+          PULUMI_BACKEND_URL: ${{ secrets.PULUMI_BACKEND_URL }}
+          PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
+        run: |
+          cd pulumi/site-contact-form
+          pulumi up --replace "urn:pulumi:sps-site-contact-form::SPS Site Contact Form Lambda::aws:lambda/function:Function::lambda"
+
