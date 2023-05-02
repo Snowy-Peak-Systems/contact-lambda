@@ -124,9 +124,15 @@ class LambdaRunner:
         ...
 
     def _send_email(self, message: EmailMessage) -> None:
-        # Use ses_client to sendEmail()
-        # (See https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ses/client/send_email.html)
-        ...
+        self._ses_client.send_email(
+            Source=self._email_identity,
+            Destination={"ToAddresses": [self._email_identity]},
+            Message={
+                "Subject": {"Data": "SPS Contact Form Message"},
+                "Body": {"Text": {"Data": message.message}},
+            },
+            ReplyToAddresses=[message.reply_to],
+        )
 
     def __call__(self, event: Dict[str, Any], context: Any) -> LambdaResponse:
         # try
