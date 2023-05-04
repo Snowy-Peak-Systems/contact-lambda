@@ -31,7 +31,7 @@ jobs:
         run: |
           pip install black pylint -rrequirements.txt
           black --check .
-          pylint /app
+          pylint app/
 
   test:
     name: Run tests
