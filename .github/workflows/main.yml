@@ -125,5 +125,5 @@ jobs:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
         run: |
           cd pulumi/site-contact-form
-          pulumi up --replace "urn:pulumi:sps-site-contact-form::SPS Site Contact Form Lambda::aws:lambda/function:Function::lambda"
+          pulumi up --non-interactive --replace "urn:pulumi:sps-site-contact-form::SPS Site Contact Form Lambda::aws:lambda/function:Function::lambda"
 
