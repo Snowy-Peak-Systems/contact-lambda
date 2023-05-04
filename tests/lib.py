@@ -16,38 +16,39 @@ from requests import Response
 
 @pytest.fixture(autouse=True)
 def mock_get_request(monkeypatch):
-    def mock_get(*args, **kwargs) -> Response:
-        return MockResponse(kwargs["params"]["response"] == "my_token")
+    def mock_post(*args, **kwargs) -> Response:
+        return MockResponse(success=kwargs["params"]["response"] == "my_token")
 
     # apply the monkeypatch for requests.get to mock_get
-    monkeypatch.setattr(requests, "get", mock_get)
+    monkeypatch.setattr(requests, "post", mock_post)
 
 
 @pytest.fixture
 def event() -> Dict[str, Any]:
     return {
         "Body": (
-            "{'token': 'my_token', 'name': 'my_name', "
-            "'email': 'test-sender@example.com', 'message', 'test message'}"
+            '{"token": "my_token", '
+            '"name": "my_name", '
+            '"email": "test-sender@example.com", '
+            '"message": "test message"}'
         )
     }
 
 
 class MockResponse(Response):
     _status_code: int
-    json: Dict[Any, Any]
+    _json: Dict[Any, Any]
 
     def __init__(self, status_code: int = 200, success: bool = True):
-        super().__init__()
         self._status_code = status_code
-        self.json = {"success": success}
+        self._json = {"success": success}
 
     @property
     def status_code(self) -> int:
         return self._status_code
 
-    def json(self) -> Any:
-        return self.json
+    def json(self) -> Dict[Any, Any]:
+        return self._json
 
 
 class MockClientError(ClientError):
@@ -68,6 +69,11 @@ class MockSESClient(SESClient):
 
     def __init__(self, force_fail: bool = False):
         self._force_fail = force_fail
+        self._source = None
+        self._destinations = None
+        self._subject = None
+        self._message = None
+        self._reply_tos = None
 
     def send_email(
         self,
@@ -78,7 +84,7 @@ class MockSESClient(SESClient):
         ReplyToAddresses: Sequence[str] = ...,
     ) -> SendEmailResponseTypeDef:
         if self._force_fail is True:
-            raise MockClientError
+            raise MockClientError()
 
         self._source = Source
         self._destinations = Destination["ToAddresses"]
@@ -115,14 +121,15 @@ class MockSecretsClient(SecretsManagerClient):
 
     def __init__(self, force_fail: bool = False):
         self._force_fail = force_fail
+        self._secret_id = None
 
     def get_secret_value(self, *, SecretId: str) -> GetSecretValueResponseTypeDef:
         if self._force_fail is True:
-            raise MockClientError
+            raise MockClientError()
 
         self._secret_id = SecretId
 
-        return {"SecretString": "{'CAPTCHA_SECRET_KEY': 'secret-key'}"}
+        return {"SecretString": '{"CAPTCHA_SECRET_KEY": "secret-key"}'}
 
     @property
     def secret_id(self) -> str:

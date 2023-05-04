@@ -5,7 +5,7 @@ import requests as requests
 from requests import Response
 
 from app import EmailMessage, get_response, LambdaRunner
-from lib import MockSESClient, MockSecretsClient, MockResponse, event
+from lib import MockSESClient, MockSecretsClient, MockResponse, event, mock_get_request
 
 
 def test_get_response_sets_status_code():
@@ -13,7 +13,7 @@ def test_get_response_sets_status_code():
 
 
 def test_get_response_sets_message():
-    assert get_response(0, "MyMessage")["body"] == "{'message': 'MyMessage'}"
+    assert get_response(0, "MyMessage")["body"] == '{"message": "MyMessage"}'
 
 
 def test_email_message_throws_error_on_invalid_name():
@@ -70,7 +70,7 @@ def test_lambda_runner_sends_email(event):
     assert ses_client.source == "test@example.com"
     assert ses_client.message == "test message"
     assert ses_client.destinations == ["test@example.com"]
-    assert ses_client.reply_tos == ["test-sender@example.com"]
+    assert ses_client.reply_tos == ["my_name <test-sender@example.com>"]
 
 
 def test_lambda_runner_gets_secret(event):
@@ -84,14 +84,16 @@ def test_lambda_runner_verifies_captcha(monkeypatch, event):
     get_url = None
     get_params = None
 
-    def mock_get(url: str, params: Dict[str, Any] = None, timeout: int = 0) -> Response:
+    def mock_post(
+        url: str, params: Dict[str, Any] = None, timeout: int = 0
+    ) -> Response:
         nonlocal get_url, get_params
         get_url = url
         get_params = params
 
         return MockResponse()
 
-    monkeypatch.setattr(requests, "get", mock_get)
+    monkeypatch.setattr(requests, "post", mock_post)
 
     LambdaRunner(secrets_client=MockSecretsClient(), ses_client=MockSESClient())(
         event, None
@@ -134,8 +136,8 @@ def test_lambda_runner_returns_400_on_missing_data(event):
 
 def test_lambda_runner_returns_400_on_bad_name(event):
     event["Body"] = (
-        "{'token': 'my_token', 'name': '', "
-        "'email': 'test-sender@example.com', 'message', 'test message'}"
+        '{"token": "my_token", "name": "", '
+        '"email": "test-sender@example.com", "message": "test message"}'
     )
 
     response = LambdaRunner(
@@ -148,8 +150,8 @@ def test_lambda_runner_returns_400_on_bad_name(event):
 
 def test_lambda_runner_returns_400_on_bad_email(event):
     event["Body"] = (
-        "{'token': 'my_token', 'name': 'my_name', "
-        "'email': 'email', 'message', 'test message'}"
+        '{"token": "my_token", "name": "my_name", '
+        '"email": "email", "message": "test message"}'
     )
 
     response = LambdaRunner(
@@ -162,8 +164,8 @@ def test_lambda_runner_returns_400_on_bad_email(event):
 
 def test_lambda_runner_returns_400_on_bad_message(event):
     event["Body"] = (
-        "{'token': 'my_token', 'name': 'my_name', "
-        "'email': 'test-sender@example.com', 'message', ''}"
+        '{"token": "my_token", "name": "my_name", '
+        '"email": "test-sender@example.com", "message": ""}'
     )
 
     response = LambdaRunner(
@@ -176,9 +178,25 @@ def test_lambda_runner_returns_400_on_bad_message(event):
 
 def test_lambda_runner_returns_401_on_bad_token(event):
     event["Body"] = (
-        "{'token': 'bad_token', 'name': 'my_name', "
-        "'email': 'test-sender@example.com', 'message', 'test message'}"
+        '{"token": "bad_token", "name": "my_name", '
+        '"email": "test-sender@example.com", "message": "test message"}'
     )
+
+    response = LambdaRunner(
+        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+    )(event, None)
+
+    assert response["statusCode"] == 401
+    assert response["body"] == '{"message": "Invalid CAPTCHA Token"}'
+
+
+def test_lambda_runner_returns_401_on_captcha_verify_error(monkeypatch, event):
+    def mock_post(
+        url: str, params: Dict[str, Any] = None, timeout: int = 0
+    ) -> Response:
+        return MockResponse(500)
+
+    monkeypatch.setattr(requests, "post", mock_post)
 
     response = LambdaRunner(
         secrets_client=MockSecretsClient(), ses_client=MockSESClient()

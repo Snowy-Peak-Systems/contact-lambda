@@ -35,7 +35,7 @@ def get_response(status_code: int, message: str) -> LambdaResponse:
     return {
         "isBase64Encoded": False,
         "statusCode": status_code,
-        "body": f"{{'message': '{message}'}}",
+        "body": f'{{"message": "{message}"}}',
         "headers": {"content-type": "application/json"},
     }
 
