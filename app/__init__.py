@@ -1,10 +1,12 @@
 """Lambda for contact form requests."""
-
+import json
 import os
 import re
+from json import JSONDecodeError
 from typing import Dict, Any, TypedDict, Literal, Optional
 
 import boto3
+import requests
 from cachetools import cached, TTLCache
 from mypy_boto3_secretsmanager.client import SecretsManagerClient
 from mypy_boto3_ses.client import SESClient
@@ -21,6 +23,7 @@ EMAIL_PATTERN = re.compile(
 
 class LambdaResponse(TypedDict):
     """Response returned by the lambda."""
+
     isBase64Encoded: Literal[False]
     headers: Dict[Literal["content-type"], Literal["application/json"]]
     statusCode: int
@@ -108,13 +111,18 @@ class LambdaRunner:
 
     @cached(TTLCache(maxsize=2048, ttl=300))
     def _get_captcha_secret(self) -> str:
-        return json.loads(self._secrets_client.get_secret_value(
-            SecretId=self._secret_name, 
-        )["SecretString"])["CAPTCHA_SECRET_KEY"]
+        return json.loads(
+            self._secrets_client.get_secret_value(
+                SecretId=self._secret_name,
+            )["SecretString"]
+        )["CAPTCHA_SECRET_KEY"]
 
     def _verify_captcha(self, token: str) -> bool:
-        response=requests.post("https://www.google.com/recaptcha/api/siteverify", params={"secret": self._get_captcha_secret(), "response": token})
-        return response.status_code == 200 and response.json()["success"] == True
+        response = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            params={"secret": self._get_captcha_secret(), "response": token},
+        )
+        return response.status_code == 200 and response.json()["success"] is True
 
     def _send_email(self, message: EmailMessage) -> None:
         self._ses_client.send_email(
@@ -128,24 +136,25 @@ class LambdaRunner:
         )
 
     def __call__(self, event: Dict[str, Any], _context: Any) -> LambdaResponse:
-        try: 
-            value=json.loads(event["Body"]) 
+        try:
+            value = json.loads(event["Body"])
 
             if not self._verify_captcha(value["token"]):
-                return get_response(401, "Invalid CAPTCHA Token") 
+                return get_response(401, "Invalid CAPTCHA Token")
 
-            self._send_email(EmailMessage(value["name"], value["email"], value["message"]))
-            
+            self._send_email(
+                EmailMessage(value["name"], value["email"], value["message"])
+            )
+
             return get_response(200, "Success")
         except JSONDecodeError:
             return get_response(400, "Invalid Format")
-        except KeyError: 
+        except KeyError:
             return get_response(400, "Missing Required Data")
-        except ValueError as error: 
+        except ValueError as error:
             return get_response(400, str(error))
-        except:
+        except:  # pylint: disable=bare-except
             return get_response(500, "Internal Server Error")
-    
 
 
 lambda_function = LambdaRunner()

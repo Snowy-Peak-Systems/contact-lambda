@@ -1,13 +1,11 @@
-import json
 from typing import Dict, Any
 
-import boto3
 import pytest
 import requests as requests
 from requests import Response
 
 from app import EmailMessage, get_response, LambdaRunner
-from lib import MockSESClient, MockSecretsClient, MockResponse
+from lib import MockSESClient, MockSecretsClient, MockResponse, event
 
 
 def test_get_response_sets_status_code():
