@@ -84,7 +84,7 @@ def test_lambda_runner_verifies_captcha(monkeypatch, event):
     get_url = None
     get_params = None
 
-    def mock_get(url: str, params: Dict[str, Any]) -> Response:
+    def mock_get(url: str, params: Dict[str, Any] = None, timeout: int = 0) -> Response:
         nonlocal get_url, get_params
         get_url = url
         get_params = params

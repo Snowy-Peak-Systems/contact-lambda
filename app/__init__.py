@@ -121,6 +121,7 @@ class LambdaRunner:
         response = requests.post(
             "https://www.google.com/recaptcha/api/siteverify",
             params={"secret": self._get_captcha_secret(), "response": token},
+            timeout=10,
         )
         return response.status_code == 200 and response.json()["success"] is True
 
