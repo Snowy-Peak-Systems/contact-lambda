@@ -1,0 +1,11 @@
+.idea/
+*.iml
+venv/
+.coverage
+coverage.xml
+report.xml
+.tox/
+htmlcov/
+.pytest_cache/
+*.egg-info/
+*.pyc
