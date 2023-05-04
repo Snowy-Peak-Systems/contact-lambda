@@ -112,7 +112,7 @@ jobs:
       - name: Checkout Pulumi Code
         uses: actions/checkout@v3
         with:
-          repository: Snowy-Peak-Systems/contact-lambda
+          repository: Snowy-Peak-Systems/infrastructure
           fetch-depth: 0
           path: pulumi
 
