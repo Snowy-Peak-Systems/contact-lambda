@@ -106,7 +106,7 @@ jobs:
 
       - name: Upload to S3
         run: |
-          zip -r sps-contact-form.zip dist/
+          zip -r sps-contact-form.zip dist/*
           aws s3 cp sps-contact-form.zip s3://sps-lambda-code-9cc619ae-565f-5f25-b150-57abb4c4cbac/
 
       - name: Checkout Pulumi Code
