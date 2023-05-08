@@ -15,7 +15,7 @@ from requests import Response
 
 
 @pytest.fixture(autouse=True)
-def mock_get_request(monkeypatch):
+def mock_post_request(monkeypatch):
     def mock_post(*args, **kwargs) -> Response:
         return MockResponse(success=kwargs["params"]["response"] == "my_token")
 

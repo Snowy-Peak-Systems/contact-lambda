@@ -5,7 +5,7 @@ import requests as requests
 from requests import Response
 
 from app import EmailMessage, get_response, LambdaRunner
-from lib import MockSESClient, MockSecretsClient, MockResponse, event, mock_get_request
+from lib import MockSESClient, MockSecretsClient, MockResponse, event, mock_post_request
 
 
 def test_get_response_sets_status_code():
@@ -101,6 +101,33 @@ def test_lambda_runner_verifies_captcha(monkeypatch, event):
 
     assert get_url == "https://www.google.com/recaptcha/api/siteverify"
     assert get_params == {"secret": "secret-key", "response": "my_token"}
+
+
+def test_lambda_runner_does_not_verify_captcha_when_skip_captcha_env_var_set(
+    monkeypatch, event
+):
+    monkeypatch.setenv("SKIP_CAPTCHA", "True")
+
+    get_url = None
+    get_params = None
+
+    def mock_post(
+        url: str, params: Dict[str, Any] = None, timeout: int = 0
+    ) -> Response:
+        nonlocal get_url, get_params
+        get_url = url
+        get_params = params
+
+        return MockResponse()
+
+    monkeypatch.setattr(requests, "post", mock_post)
+
+    LambdaRunner(secrets_client=MockSecretsClient(), ses_client=MockSESClient())(
+        event, None
+    )
+
+    assert get_url is None
+    assert get_params is None
 
 
 def test_lambda_runner_returns_200_on_success(event):

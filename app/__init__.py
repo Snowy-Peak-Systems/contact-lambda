@@ -79,13 +79,16 @@ class LambdaRunner:
 
     _secret_name: str
     _email_identity: str
+    _skip_captcha: bool
     _secrets_client: SecretsManagerClient
     _ses_client: SESClient
 
     def __init__(
         self,
+        *,
         secret_name: Optional[str] = None,
         email_identity: Optional[str] = None,
+        skip_captcha: Optional[bool] = None,
         secrets_client: Optional[SecretsManagerClient] = None,
         ses_client: Optional[SESClient] = None,
     ):
@@ -95,6 +98,12 @@ class LambdaRunner:
 
         self._secret_name = (
             secret_name if secret_name is not None else os.environ["SECRET_NAME"]
+        )
+
+        self._skip_captcha = (
+            skip_captcha
+            if skip_captcha is not None
+            else os.environ.get("SKIP_CAPTCHA", "false").lower() == "true"
         )
 
         self._secrets_client = (
@@ -140,7 +149,7 @@ class LambdaRunner:
         try:
             value = json.loads(event["Body"])
 
-            if not self._verify_captcha(value["token"]):
+            if not self._skip_captcha and not self._verify_captcha(value["token"]):
                 return get_response(401, "Invalid CAPTCHA Token")
 
             self._send_email(
