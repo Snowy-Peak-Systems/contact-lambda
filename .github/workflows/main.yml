@@ -37,6 +37,7 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         version: [ "3.9", "3.10" ]
     container:
