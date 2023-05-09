@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import logging
 from json import JSONDecodeError
 from typing import Dict, Any, TypedDict, Literal, Optional
 
@@ -10,6 +11,9 @@ import requests
 from cachetools import cached, TTLCache
 from mypy_boto3_secretsmanager.client import SecretsManagerClient
 from mypy_boto3_ses.client import SESClient
+
+LOGGER = logging.getLogger()
+LOGGER.setLevel("INFO")
 
 EMAIL_PATTERN = re.compile(
     r"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:["
@@ -127,6 +131,7 @@ class LambdaRunner:
         )["CAPTCHA_SECRET_KEY"]
 
     def _verify_captcha(self, token: str) -> bool:
+        LOGGER.info("Verifying CAPTCHA")
         response = requests.post(
             "https://www.google.com/recaptcha/api/siteverify",
             params={"secret": self._get_captcha_secret(), "response": token},
@@ -135,6 +140,7 @@ class LambdaRunner:
         return response.status_code == 200 and response.json()["success"] is True
 
     def _send_email(self, message: EmailMessage) -> None:
+        LOGGER.info("Sending email from %s", message.reply_to)
         self._ses_client.send_email(
             Source=self._email_identity,
             Destination={"ToAddresses": [self._email_identity]},
@@ -147,23 +153,30 @@ class LambdaRunner:
 
     def __call__(self, event: Dict[str, Any], _context: Any) -> LambdaResponse:
         try:
+            LOGGER.info("Processing new contact request")
             value = json.loads(event["Body"])
 
             if not self._skip_captcha and not self._verify_captcha(value["token"]):
+                LOGGER.warning("Invalid CAPTCHA Token")
                 return get_response(401, "Invalid CAPTCHA Token")
 
             self._send_email(
                 EmailMessage(value["name"], value["email"], value["message"])
             )
 
+            LOGGER.info("Success")
             return get_response(200, "Success")
-        except JSONDecodeError:
+        except JSONDecodeError as error:
+            LOGGER.error(error)
             return get_response(400, "Invalid Format")
-        except KeyError:
+        except KeyError as error:
+            LOGGER.error(error)
             return get_response(400, "Missing Required Data")
         except ValueError as error:
+            LOGGER.error(error)
             return get_response(400, str(error))
-        except:  # pylint: disable=bare-except
+        except Exception as error:  # pylint: disable=broad-exception-caught
+            LOGGER.error(error)
             return get_response(500, "Internal Server Error")
 
 
