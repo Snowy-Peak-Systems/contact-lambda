@@ -26,7 +26,7 @@ def mock_post_request(monkeypatch):
 @pytest.fixture
 def event() -> Dict[str, Any]:
     return {
-        "Body": (
+        "body": (
             '{"token": "my_token", '
             '"name": "my_name", '
             '"email": "test-sender@example.com", '
@@ -56,7 +56,7 @@ class MockClientError(ClientError):
         ...
 
     def __str__(self):
-        ...
+        return ""
 
 
 class MockSESClient(SESClient):

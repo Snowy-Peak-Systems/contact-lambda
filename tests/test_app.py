@@ -140,7 +140,7 @@ def test_lambda_runner_returns_200_on_success(event):
 
 
 def test_lambda_runner_returns_400_on_bad_body_format(event):
-    event["Body"] = "{["
+    event["body"] = "{["
 
     response = LambdaRunner(
         secrets_client=MockSecretsClient(), ses_client=MockSESClient()
@@ -151,7 +151,7 @@ def test_lambda_runner_returns_400_on_bad_body_format(event):
 
 
 def test_lambda_runner_returns_400_on_missing_data(event):
-    event["Body"] = "{}"
+    event["body"] = "{}"
 
     response = LambdaRunner(
         secrets_client=MockSecretsClient(), ses_client=MockSESClient()
@@ -162,7 +162,7 @@ def test_lambda_runner_returns_400_on_missing_data(event):
 
 
 def test_lambda_runner_returns_400_on_bad_name(event):
-    event["Body"] = (
+    event["body"] = (
         '{"token": "my_token", "name": "", '
         '"email": "test-sender@example.com", "message": "test message"}'
     )
@@ -176,7 +176,7 @@ def test_lambda_runner_returns_400_on_bad_name(event):
 
 
 def test_lambda_runner_returns_400_on_bad_email(event):
-    event["Body"] = (
+    event["body"] = (
         '{"token": "my_token", "name": "my_name", '
         '"email": "email", "message": "test message"}'
     )
@@ -190,7 +190,7 @@ def test_lambda_runner_returns_400_on_bad_email(event):
 
 
 def test_lambda_runner_returns_400_on_bad_message(event):
-    event["Body"] = (
+    event["body"] = (
         '{"token": "my_token", "name": "my_name", '
         '"email": "test-sender@example.com", "message": ""}'
     )
@@ -204,7 +204,7 @@ def test_lambda_runner_returns_400_on_bad_message(event):
 
 
 def test_lambda_runner_returns_401_on_bad_token(event):
-    event["Body"] = (
+    event["body"] = (
         '{"token": "bad_token", "name": "my_name", '
         '"email": "test-sender@example.com", "message": "test message"}'
     )
