@@ -171,7 +171,7 @@ class LambdaRunner:
     def __call__(self, event: Dict[str, Any], _context: Any) -> LambdaResponse:
         try:
             LOGGER.info("Processing new contact request")
-            value = json.loads(event["body"])
+            value = json.loads(event.get("body", "{}"))
 
             if not self.skip_captcha and not self._verify_captcha(value["token"]):
                 LOGGER.warning("Invalid CAPTCHA Token")

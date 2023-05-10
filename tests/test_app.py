@@ -161,6 +161,17 @@ def test_lambda_runner_returns_400_on_missing_data(event):
     assert response["body"] == '{"message": "Missing Required Data: \'token\'"}'
 
 
+def test_lambda_runner_returns_400_on_missing_body(event):
+    del event["body"]
+
+    response = LambdaRunner(
+        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+    )(event, None)
+
+    assert response["statusCode"] == 400
+    assert response["body"] == '{"message": "Missing Required Data: \'token\'"}'
+
+
 def test_lambda_runner_returns_400_on_bad_name(event):
     event["body"] = (
         '{"token": "my_token", "name": "", '
