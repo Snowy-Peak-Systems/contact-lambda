@@ -187,8 +187,8 @@ class LambdaRunner:
             LOGGER.error(error)
             return get_response(400, "Invalid Format")
         except KeyError as error:
-            LOGGER.error(error)
-            return get_response(400, "Missing Required Data")
+            LOGGER.error("KeyError: %s", error)
+            return get_response(400, f"Missing Required Data: {error}")
         except ValueError as error:
             LOGGER.error(error)
             return get_response(400, str(error))
