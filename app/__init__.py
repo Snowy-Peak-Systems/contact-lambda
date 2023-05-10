@@ -81,11 +81,11 @@ class EmailMessage:
 class LambdaRunner:
     """Class that is executed when the lambda is triggered."""
 
-    _secret_name: str
     _email_identity: str
-    _skip_captcha: bool
+    _secret_name: str
     _secrets_client: SecretsManagerClient
     _ses_client: SESClient
+    _skip_captcha: bool
 
     def __init__(
         self,
@@ -96,19 +96,9 @@ class LambdaRunner:
         secrets_client: Optional[SecretsManagerClient] = None,
         ses_client: Optional[SESClient] = None,
     ):
-        self._email_identity = (
-            email_identity if email_identity is not None else os.environ["SES_IDENTITY"]
-        )
-
-        self._secret_name = (
-            secret_name if secret_name is not None else os.environ["SECRET_NAME"]
-        )
-
-        self._skip_captcha = (
-            skip_captcha
-            if skip_captcha is not None
-            else os.environ.get("SKIP_CAPTCHA", "false").lower() == "true"
-        )
+        self._secret_name = secret_name
+        self._email_identity = email_identity
+        self._skip_captcha = skip_captcha
 
         self._secrets_client = (
             secrets_client
@@ -122,11 +112,38 @@ class LambdaRunner:
             else boto3.client("ses", os.environ["AWS_REGION"])
         )
 
+    @property
+    def secret_name(self) -> str:
+        """Returns the name of the secret that stores application data."""
+        return (
+            self._secret_name
+            if self._secret_name is not None
+            else os.environ["SECRET_NAME"]
+        )
+
+    @property
+    def skip_captcha(self) -> bool:
+        """Returns whether to skip captcha or not."""
+        return (
+            self._skip_captcha
+            if self._skip_captcha is not None
+            else os.environ.get("SKIP_CAPTCHA", "false").lower() == "true"
+        )
+
+    @property
+    def email_identity(self) -> str:
+        """Returns the email identity for sending email."""
+        return (
+            self._email_identity
+            if self._email_identity is not None
+            else os.environ["SES_IDENTITY"]
+        )
+
     @cached(TTLCache(maxsize=2048, ttl=300))
     def _get_captcha_secret(self) -> str:
         return json.loads(
             self._secrets_client.get_secret_value(
-                SecretId=self._secret_name,
+                SecretId=self.secret_name,
             )["SecretString"]
         )["CAPTCHA_SECRET_KEY"]
 
@@ -142,8 +159,8 @@ class LambdaRunner:
     def _send_email(self, message: EmailMessage) -> None:
         LOGGER.info("Sending email from %s", message.reply_to)
         self._ses_client.send_email(
-            Source=self._email_identity,
-            Destination={"ToAddresses": [self._email_identity]},
+            Source=self.email_identity,
+            Destination={"ToAddresses": [self.email_identity]},
             Message={
                 "Subject": {"Data": "SPS Contact Form Message"},
                 "Body": {"Text": {"Data": message.message}},
@@ -156,7 +173,7 @@ class LambdaRunner:
             LOGGER.info("Processing new contact request")
             value = json.loads(event["body"])
 
-            if not self._skip_captcha and not self._verify_captcha(value["token"]):
+            if not self.skip_captcha and not self._verify_captcha(value["token"]):
                 LOGGER.warning("Invalid CAPTCHA Token")
                 return get_response(401, "Invalid CAPTCHA Token")
 
