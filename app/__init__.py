@@ -61,7 +61,7 @@ class EmailMessage:
         ):
             raise ValueError("Invalid Email")
 
-        if message is None or len(message.strip()) == 0:
+        if message is None or len(message.strip()) == 0 or len(message.strip()) >= 1000:
             raise ValueError("Invalid Message")
 
         self._reply_to = f"{name.strip()} <{email.strip().lower()}>"

@@ -214,6 +214,21 @@ def test_lambda_runner_returns_400_on_bad_message(event):
     assert response["body"] == '{"message": "Invalid Message"}'
 
 
+def test_lambda_runner_returns_400_on_too_long_message(event):
+    long_message = "a" * 1000
+    event["body"] = (
+        '{"token": "my_token", "name": "my_name", '
+        '"email": "test-sender@example.com", "message": "' + long_message + '"}'
+    )
+
+    response = LambdaRunner(
+        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+    )(event, None)
+
+    assert response["statusCode"] == 400
+    assert response["body"] == '{"message": "Invalid Message"}'
+
+
 def test_lambda_runner_returns_401_on_bad_token(event):
     event["body"] = (
         '{"token": "bad_token", "name": "my_name", '
