@@ -23,7 +23,7 @@ jobs:
       options: -w /usr/src/app
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -47,7 +47,7 @@ jobs:
       options: -w /usr/src/app
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -69,7 +69,7 @@ jobs:
       options: -w /usr/src/app
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -112,7 +112,7 @@ jobs:
           aws s3 cp sps-contact-form.zip s3://sps-lambda-code-9cc619ae-565f-5f25-b150-57abb4c4cbac/
 
       - name: Checkout Pulumi Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: Snowy-Peak-Systems/infrastructure
           fetch-depth: 0
