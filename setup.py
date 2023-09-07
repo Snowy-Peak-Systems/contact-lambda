@@ -11,7 +11,6 @@ setup(
     url="https://github.com/Snowy-Peak-Systems/contact-lambda",
     description="AWS Lambda that sends an email when a request is received",
     classifiers=[
-        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Operating System :: OS Independent",
     ],
