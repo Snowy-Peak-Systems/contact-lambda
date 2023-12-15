@@ -4,7 +4,7 @@ import pytest
 import requests as requests
 from requests import Response
 
-from app import EmailMessage, get_response, LambdaRunner
+from app import EmailMessage, get_response, LambdaRunner, LambdaRunnerArgs
 from lib import MockSESClient, MockSecretsClient, MockResponse, event, mock_post_request
 
 
@@ -64,7 +64,9 @@ def test_email_message_trims_whitespace():
 
 def test_lambda_runner_sends_email(event):
     ses_client = MockSESClient()
-    LambdaRunner(secrets_client=MockSecretsClient(), ses_client=ses_client)(event, None)
+    LambdaRunner(
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=ses_client)
+    )(event, None)
 
     assert ses_client.subject == "SPS Contact Form Message"
     assert ses_client.source == "test@example.com"
@@ -75,7 +77,9 @@ def test_lambda_runner_sends_email(event):
 
 def test_lambda_runner_gets_secret(event):
     secrets_client = MockSecretsClient()
-    LambdaRunner(secrets_client=secrets_client, ses_client=MockSESClient())(event, None)
+    LambdaRunner(
+        LambdaRunnerArgs(secrets_client=secrets_client, ses_client=MockSESClient())
+    )(event, None)
 
     assert secrets_client.secret_id == "secret-name"
 
@@ -95,9 +99,9 @@ def test_lambda_runner_verifies_captcha(monkeypatch, event):
 
     monkeypatch.setattr(requests, "post", mock_post)
 
-    LambdaRunner(secrets_client=MockSecretsClient(), ses_client=MockSESClient())(
-        event, None
-    )
+    LambdaRunner(
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
+    )(event, None)
 
     assert get_url == "https://www.google.com/recaptcha/api/siteverify"
     assert get_params == {"secret": "secret-key", "response": "my_token"}
@@ -122,9 +126,9 @@ def test_lambda_runner_does_not_verify_captcha_when_skip_captcha_env_var_set(
 
     monkeypatch.setattr(requests, "post", mock_post)
 
-    LambdaRunner(secrets_client=MockSecretsClient(), ses_client=MockSESClient())(
-        event, None
-    )
+    LambdaRunner(
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
+    )(event, None)
 
     assert get_url is None
     assert get_params is None
@@ -132,7 +136,7 @@ def test_lambda_runner_does_not_verify_captcha_when_skip_captcha_env_var_set(
 
 def test_lambda_runner_returns_200_on_success(event):
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 200
@@ -143,7 +147,7 @@ def test_lambda_runner_returns_400_on_bad_body_format(event):
     event["body"] = "{["
 
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 400
@@ -154,7 +158,7 @@ def test_lambda_runner_returns_400_on_missing_data(event):
     event["body"] = "{}"
 
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 400
@@ -165,7 +169,7 @@ def test_lambda_runner_returns_400_on_missing_body(event):
     del event["body"]
 
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 400
@@ -179,7 +183,7 @@ def test_lambda_runner_returns_400_on_bad_name(event):
     )
 
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 400
@@ -193,7 +197,7 @@ def test_lambda_runner_returns_400_on_bad_email(event):
     )
 
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 400
@@ -207,7 +211,7 @@ def test_lambda_runner_returns_400_on_bad_message(event):
     )
 
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 400
@@ -222,7 +226,7 @@ def test_lambda_runner_returns_400_on_too_long_message(event):
     )
 
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 400
@@ -236,7 +240,7 @@ def test_lambda_runner_returns_401_on_bad_token(event):
     )
 
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 401
@@ -252,7 +256,7 @@ def test_lambda_runner_returns_401_on_captcha_verify_error(monkeypatch, event):
     monkeypatch.setattr(requests, "post", mock_post)
 
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(), ses_client=MockSESClient()
+        LambdaRunnerArgs(secrets_client=MockSecretsClient(), ses_client=MockSESClient())
     )(event, None)
 
     assert response["statusCode"] == 401
@@ -261,7 +265,9 @@ def test_lambda_runner_returns_401_on_captcha_verify_error(monkeypatch, event):
 
 def test_lambda_runner_returns_500_on_server_error(event):
     response = LambdaRunner(
-        secrets_client=MockSecretsClient(True), ses_client=MockSESClient()
+        LambdaRunnerArgs(
+            secrets_client=MockSecretsClient(True), ses_client=MockSESClient()
+        )
     )(event, None)
 
     assert response["statusCode"] == 500
