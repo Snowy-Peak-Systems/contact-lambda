@@ -52,8 +52,7 @@ class MockResponse(Response):
 
 
 class MockClientError(ClientError):
-    def __init__(self):
-        ...
+    def __init__(self): ...
 
     def __str__(self):
         return ""
