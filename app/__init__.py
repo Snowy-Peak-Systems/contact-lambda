@@ -1,4 +1,5 @@
 """Lambda for contact form requests."""
+
 import json
 import os
 import re
