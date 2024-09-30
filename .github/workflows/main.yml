@@ -119,7 +119,7 @@ jobs:
           path: pulumi
 
       - name: Install Pulumi
-        uses: pulumi/actions@v5
+        uses: pulumi/actions@v6
 
       - name: Deploy Lambda
         env:
