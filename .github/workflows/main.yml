@@ -100,7 +100,7 @@ jobs:
           aws-region: us-east-2
 
       - name: Download Archive
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: Archive
           path: dist/
