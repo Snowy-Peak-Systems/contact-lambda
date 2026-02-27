@@ -80,7 +80,7 @@ jobs:
           pip install -t dist/ -rrequirements.txt 
 
       - name: Upload Archive
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: Archive
           path: dist/
