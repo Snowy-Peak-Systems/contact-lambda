@@ -1,4 +1,4 @@
-boto3-stubs-lite[ses,secretsmanager]>=1.43.14
+boto3-stubs-lite[ses,secretsmanager]>=1.43.16
 typing-extensions>=4.15.0
 urllib3<3
 requests>=2.34.2
