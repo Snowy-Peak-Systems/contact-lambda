@@ -1,6 +1,6 @@
 boto3-stubs-lite[ses,secretsmanager]~=1.43
 boto3~=1.43
 typing-extensions~=4.15
-urllib3~=2.0
+urllib3~=2.7
 requests~=2.34
 cachetools~=7.1
