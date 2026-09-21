@@ -3,4 +3,4 @@ boto3~=1.43
 typing-extensions~=4.16
 urllib3~=2.8
 requests~=2.34
-cachetools~=7.1
+cachetools~=7.2
